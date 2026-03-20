@@ -99,7 +99,7 @@ The system ensures that all critical operations (energy updates, transactions, s
  - Include it only when initializing or demonstrating blockchain data
 
 ## Future Improvements
--Distributed blockchain implementation
--User authentication and role management
--WebSocket-based real-time updates
--Cloud deployment for public access
+ - Distributed blockchain implementation
+ - User authentication and role management
+ - WebSocket-based real-time updates
+ - Cloud deployment for public access
