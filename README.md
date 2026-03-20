@@ -97,6 +97,8 @@ The system ensures that all critical operations (energy updates, transactions, s
  - blockchain.json acts as the local blockchain ledger
  - It is excluded via .gitignore to avoid unnecessary commits
  - Include it only when initializing or demonstrating blockchain data
+ - Username: admin
+ - Password: 1234
 
 ## Future Improvements
  - Distributed blockchain implementation
