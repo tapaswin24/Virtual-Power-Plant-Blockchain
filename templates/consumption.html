@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>⚡ Consumption Metrics</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root {
+  --bg-color: #0b1120;
+  --bg-image: radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.1), transparent 40%);
+  --card-bg: rgba(30, 41, 59, 0.6);
+  --card-border: rgba(255, 255, 255, 0.05);
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --skeleton-bg: rgba(255, 255, 255, 0.05);
+}
+
+.light-theme {
+  --bg-color: #f1f5f9;
+  --bg-image: radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.05), transparent 40%);
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --card-border: rgba(0, 0, 0, 0.05);
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --skeleton-bg: rgba(0, 0, 0, 0.05);
+}
+
+* { transition: background-color 0.4s ease, border-color 0.4s ease, color 0.4s ease; }
+
+body { font-family: 'Inter', sans-serif; }
+
+.glass-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border);
+    border-radius: 1rem;
+    box-shadow: var(--card-shadow);
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+.skeleton-box { display: inline-block; height: 1.5rem; width: 60%; background: var(--skeleton-bg); border-radius: 0.25rem; }
+</style>
+</head>
+
+<body class="flex h-screen bg-[var(--bg-color)] overflow-hidden" id="body" style="background-image: var(--bg-image); color: var(--text-primary);">
+
+{% include 'sidebar.html' %}
+
+<div class="flex-1 overflow-y-auto p-4 md:p-8 relative w-full">
+
+  <!-- HEADER -->
+  <div class="flex flex-col md:flex-row justify-between items-center mb-10 pb-6 border-b border-[var(--card-border)] relative z-10">
+    <div>
+        <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400 flex items-center gap-3">
+          <svg class="h-8 w-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          Consumption Metrics
+        </h1>
+        <p class="text-[var(--text-secondary)] mt-2 text-sm max-w-lg">
+          Live extrapolations mapping your daily energy intake into long-term cycle predictions.
+        </p>
+    </div>
+  </div>
+
+  <div class="max-w-4xl mx-auto space-y-6">
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Daily Block -->
+        <div class="glass-card shadow-lg shadow-blue-500/10 border-blue-500/30 group hover:border-blue-400 transition-all">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="p-3 bg-blue-500/20 text-blue-400 rounded-xl"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                <div>
+                   <h3 class="font-bold text-lg">Projected Daily Consumption</h3>
+                   <p class="text-xs text-[var(--text-secondary)] uppercase tracking-wider font-semibold">24-Hour Cycle Model</p>
+                </div>
+            </div>
+            <p class="text-4xl font-black text-[var(--text-primary)] font-mono ml-2 mt-6 mb-2">
+                <span id="proj_day"><span class="skeleton-box"></span></span> <span class="text-lg text-blue-400 align-baseline">kWh</span>
+            </p>
+            <p class="text-xs text-[var(--text-secondary)] ml-2 border-t border-[var(--card-border)] pt-4 mt-4">
+                Scales partial-day live accumulations (`self.ac_energy`) exponentially to represent a full calendar day's load.
+            </p>
+        </div>
+
+        <!-- Bimonthly Block -->
+        <div class="glass-card shadow-lg shadow-indigo-500/10 border-indigo-500/30 group hover:border-indigo-400 transition-all">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="p-3 bg-indigo-500/20 text-indigo-400 rounded-xl"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+                <div>
+                   <h3 class="font-bold text-lg">Projected Bimonthly Trend</h3>
+                   <p class="text-xs text-[var(--text-secondary)] uppercase tracking-wider font-semibold">60-Day Extrapolated View</p>
+                </div>
+            </div>
+            <p class="text-4xl font-black text-[var(--text-primary)] font-mono ml-2 mt-6 mb-2">
+                <span id="proj_bimonth"><span class="skeleton-box"></span></span> <span class="text-lg text-indigo-400 align-baseline">kWh</span>
+            </p>
+            <p class="text-xs text-[var(--text-secondary)] ml-2 border-t border-[var(--card-border)] pt-4 mt-4">
+                Models out the current physical activity behavior trend bounds over a formal 60-day billing cycle.
+            </p>
+        </div>
+
+        <!-- Renewable Block -->
+        <div class="glass-card shadow-lg shadow-emerald-500/10 border-emerald-500/30 group hover:border-emerald-400 transition-all">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg></div>
+                <div>
+                   <h3 class="font-bold text-lg">Projected Bimonthly Renewable</h3>
+                   <p class="text-xs text-[var(--text-secondary)] uppercase tracking-wider font-semibold">60-Day Solar & Discharge</p>
+                </div>
+            </div>
+            <p class="text-4xl font-black text-[var(--text-primary)] font-mono ml-2 mt-6 mb-2">
+                <span id="proj_renew"><span class="skeleton-box"></span></span> <span class="text-lg text-emerald-400 align-baseline">kWh</span>
+            </p>
+            <p class="text-xs text-[var(--text-secondary)] ml-2 border-t border-[var(--card-border)] pt-4 mt-4">
+                Total standalone energy yielded safely outside the grid across a 60-day window.
+            </p>
+        </div>
+
+        <!-- Charging Block -->
+        <div class="glass-card shadow-lg shadow-red-500/10 border-red-500/30 group hover:border-red-400 transition-all">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="p-3 bg-red-500/20 text-red-500 rounded-xl"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
+                <div>
+                   <h3 class="font-bold text-lg">Projected Bimonthly Charging</h3>
+                   <p class="text-xs text-[var(--text-secondary)] uppercase tracking-wider font-semibold">60-Day Battery Load</p>
+                </div>
+            </div>
+            <p class="text-4xl font-black text-[var(--text-primary)] font-mono ml-2 mt-6 mb-2">
+                <span id="proj_charge"><span class="skeleton-box"></span></span> <span class="text-lg text-red-500 align-baseline">kWh</span>
+            </p>
+            <p class="text-xs text-[var(--text-secondary)] ml-2 border-t border-[var(--card-border)] pt-4 mt-4">
+                Estimated electrical taxation pulled directly into the battery blocks over 60 days.
+            </p>
+        </div>
+    </div>
+    
+  </div>
+
+<script>
+window.toggleThemeGlobal = function(){
+  document.body.classList.toggle("light-theme");
+  let ic2 = document.getElementById("themeIconMobile");
+  if(ic2) ic2.innerText = document.body.classList.contains("light-theme") ? "🌙" : "☀️";
+};
+
+function fetchData() {
+  fetch("/data")
+    .then(res => res.json())
+    .then(d => {
+      if (d.timestamp) {
+          document.getElementById("proj_day").innerText = d.projected_daily_kwh;
+          document.getElementById("proj_bimonth").innerText = d.bimonthly_kwh;
+          document.getElementById("proj_renew").innerText = d.bimonthly_renewable_kwh;
+          document.getElementById("proj_charge").innerText = d.bimonthly_charge_kwh;
+      }
+    });
+}
+setTimeout(fetchData, 500);
+setInterval(fetchData, 10000);
+</script>
+
+</div>
+</body>
+</html>

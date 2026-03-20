@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>⚡ VPP Blockchain Node</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* CSS Variables & Glassmorphism */
+:root {
+  --bg-color: #0b1120;
+  --bg-image: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.1), transparent 50%);
+  --card-bg: rgba(15, 23, 42, 0.8);
+  --card-border: rgba(99, 102, 241, 0.2);
+  --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --hash-bg: rgba(0, 0, 0, 0.4);
+  --line-color: rgba(99, 102, 241, 0.3);
+}
+
+.light-theme {
+  --bg-color: #f1f5f9;
+  --bg-image: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.05), transparent 50%);
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(99, 102, 241, 0.3);
+  --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --hash-bg: rgba(241, 245, 249, 0.8);
+  --line-color: rgba(99, 102, 241, 0.4);
+}
+
+* { transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
+
+body {
+    background-color: var(--bg-color);
+    background-image: var(--bg-image);
+    color: var(--text-primary);
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    position: relative;
+}
+
+/* Background Grid Overlay */
+body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(var(--card-border) 1px, transparent 1px),
+                      linear-gradient(90deg, var(--card-border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.2;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.glass-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    border-radius: 1rem;
+    box-shadow: var(--card-shadow);
+    position: relative;
+}
+
+/* Connecting Chain Line */
+.chain-container {
+    position: relative;
+    padding-left: 2rem;
+}
+.chain-container::before {
+    content: '';
+    position: absolute;
+    top: 2rem;
+    bottom: -2rem; /* Extend past last block slightly */
+    left: 20px;
+    width: 2px;
+    background: var(--line-color);
+    z-index: 0;
+}
+/* Stop the line on the very last element */
+.chain-container > div:last-child .chain-dot::after {
+    display: none;
+}
+
+/* Node Dot */
+.chain-dot {
+    position: absolute;
+    left: -2rem; /* Pull back into the line */
+    top: 1.25rem;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #6366f1; /* Indigo */
+    border: 3px solid var(--bg-color);
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.8);
+    z-index: 10;
+}
+
+/* Cyberpunk Data Fonts */
+.data-mono {
+    font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    word-break: break-all;
+}
+.hash-pill {
+    background: var(--hash-bg);
+    border: 1px solid var(--card-border);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.glow-text {
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+</style>
+</head>
+
+<body class="flex h-screen bg-[var(--bg-color)] overflow-hidden" id="body" style="background-image: var(--bg-image); color: var(--text-primary);">
+
+{% include 'sidebar.html' %}
+
+<div class="flex-1 overflow-y-auto p-4 md:p-8 relative w-full">
+
+<!-- HEADER -->
+<div class="flex flex-col md:flex-row justify-between items-center mb-10 pb-6 border-b border-[var(--card-border)] relative z-10">
+  <div>
+      <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400 flex items-center gap-3 glow-text text-center md:text-left">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect><path d="M6 8h.01"></path><path d="M10 8h.01"></path><path d="M14 8h.01"></path><path d="M6 12h12"></path><path d="M6 16h12"></path></svg>
+        VPP Blockchain Node
+      </h1>
+      <p class="text-[var(--text-secondary)] mt-1.5 text-sm font-mono flex items-center gap-2 justify-center md:justify-start">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        Ledger Synchronized
+      </p>
+  </div>
+
+</div>
+
+<!-- MAIN FEED -->
+<div class="max-w-4xl mx-auto">
+  
+  {% if not blocks %}
+  <div class="glass-card p-12 text-center text-gray-500 border-dashed">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+      <p class="text-xl font-mono">No blocks found on the chain.</p>
+      <p class="text-sm mt-2 opacity-70">Awaiting genesis block computation...</p>
+  </div>
+  {% else %}
+  
+  <div class="chain-container flex flex-col gap-8 pb-10">
+    {% for block in blocks %}
+    <div class="glass-card p-6 w-full relative transition-transform hover:-translate-y-1 hover:border-indigo-400">
+      
+      <!-- The Node Connector -->
+      <div class="chain-dot"></div>
+
+      <!-- Block Header -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-3 border-b border-[var(--card-border)] pb-4">
+          <div class="flex items-center gap-3">
+              <span class="bg-indigo-600 shadow-[0_0_10px_rgba(79,70,229,0.5)] text-white text-xs font-bold px-3 py-1.5 rounded-md tracking-widest font-mono">
+                  BLOCK #{{ block.index }}
+              </span>
+               <span class="text-xs text-[var(--text-secondary)] font-mono flex items-center gap-1">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" /></svg>
+                 {{ block.timestamp | format_datetime }}
+               </span>
+          </div>
+          <div class="bg-[var(--hash-bg)] border border-[var(--card-border)] px-3 py-1 rounded-md text-xs font-mono text-[var(--text-secondary)]">
+              NONCE: <span class="text-indigo-400">{{ block.nonce }}</span>
+          </div>
+      </div>
+      
+      <!-- Hash Info -->
+      <div class="grid grid-cols-1 gap-4 mb-5">
+          <div>
+              <p class="text-[10px] text-[var(--text-secondary)] font-bold mb-1.5 uppercase tracking-widest">Block Hash</p>
+              <div class="hash-pill data-mono flex items-center justify-between group">
+                  <span class="text-emerald-400">{{ block.hash }}</span>
+              </div>
+          </div>
+          <div>
+              <p class="text-[10px] text-[var(--text-secondary)] font-bold mb-1.5 uppercase tracking-widest">Parent Hash</p>
+              <div class="hash-pill data-mono">
+                  <span>{{ block.previous_hash }}</span>
+              </div>
+          </div>
+      </div>
+
+      <!-- Dashboard Parameters (Transactions) -->
+      <div>
+          <div class="flex items-center gap-2 mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-cyan-400" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" /><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" /></svg>
+              <p class="text-xs font-extrabold text-cyan-400 tracking-wider uppercase">Ledger Parameters</p>
+          </div>
+          
+          {% if block.transaction and block.transaction.mode %}
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              
+              <!-- Core Data -->
+              <div class="bg-[var(--hash-bg)] border border-[var(--card-border)] rounded-lg p-3">
+                  <p class="text-[10px] uppercase text-[var(--text-secondary)] font-bold mb-1 tracking-wider">System Mode</p>
+                  <p class="text-indigo-400 font-mono text-xs font-bold">{{ block.transaction.mode }}</p>
+              </div>
+              <div class="bg-[var(--hash-bg)] border border-[var(--card-border)] rounded-lg p-3">
+                  <p class="text-[10px] uppercase text-[var(--text-secondary)] font-bold mb-1 tracking-wider">Grid AC Power</p>
+                  <p class="text-[var(--text-primary)] font-mono text-sm font-bold">{{ block.transaction.grid_ac_power }} <span class="text-[10px] text-[var(--text-secondary)]">W</span></p>
+              </div>
+              <div class="bg-[var(--hash-bg)] border border-[var(--card-border)] rounded-lg p-3">
+                  <p class="text-[10px] uppercase text-[var(--text-secondary)] font-bold mb-1 tracking-wider">Solar Power</p>
+                  <p class="text-yellow-500 font-mono text-sm font-bold">{{ block.transaction.solar_power }} <span class="text-[10px] text-[var(--text-secondary)]">W</span></p>
+              </div>
+              <div class="bg-[var(--hash-bg)] border border-[var(--card-border)] rounded-lg p-3">
+                  <p class="text-[10px] uppercase text-[var(--text-secondary)] font-bold mb-1 tracking-wider">Battery SoC</p>
+                  <p class="text-cyan-400 font-mono text-sm font-bold">{{ block.transaction.batt_soc }} <span class="text-[10px] text-[var(--text-secondary)]">%</span></p>
+              </div>
+
+              <!-- Energy Tracking -->
+              <div class="bg-[var(--hash-bg)] border border-[var(--card-border)] rounded-lg p-3">
+                  <p class="text-[10px] uppercase text-[var(--text-secondary)] font-bold mb-1 tracking-wider">Grid Energy</p>
+                  <p class="text-emerald-400 font-mono text-sm font-bold">{{ block.transaction.ac_energy }} <span class="text-[10px] text-[var(--text-secondary)]">Wh</span></p>
+              </div>
+              <div class="bg-[var(--hash-bg)] border border-[var(--card-border)] rounded-lg p-3">
+                  <p class="text-[10px] uppercase text-[var(--text-secondary)] font-bold mb-1 tracking-wider">Net Energy</p>
+                  <p class="text-purple-400 font-mono text-sm font-bold">{{ block.transaction.net_energy }} <span class="text-[10px] text-[var(--text-secondary)]">Wh</span></p>
+              </div>
+              
+              <!-- Cost & Carbon Tracking -->
+              <div class="bg-[var(--hash-bg)] border border-[var(--card-border)] rounded-lg p-3">
+                  <p class="text-[10px] uppercase text-[var(--text-secondary)] font-bold mb-1 tracking-wider">Cost Saved</p>
+                  <p class="text-emerald-400 font-mono text-sm font-bold">₹ {{ block.transaction.cost_saved }}</p>
+              </div>
+              <div class="bg-[var(--hash-bg)] border border-[var(--card-border)] rounded-lg p-3">
+                  <p class="text-[10px] uppercase text-[var(--text-secondary)] font-bold mb-1 tracking-wider">Carbon</p>
+                  <p class="text-[var(--text-secondary)] font-mono text-sm font-bold">{{ block.transaction.carbon }} <span class="text-[10px]">kg</span></p>
+              </div>
+          </div>
+          {% else %}
+          <div class="bg-[var(--hash-bg)] border border-[var(--card-border)] border-dashed rounded-lg p-3 text-center">
+              <p class="text-xs text-[var(--text-secondary)] font-mono italic">EMPTY_PAYLOAD // Initialization Block or Invalid Schema</p>
+          </div>
+          {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+// -------- THEME TOGGLE --------
+window.toggleThemeGlobal = function(){
+  document.body.classList.toggle("light-theme");
+  let ic1 = document.getElementById("themeIcon");
+  let ic2 = document.getElementById("themeIconMobile");
+  if(ic1) ic1.innerText = document.body.classList.contains("light-theme") ? "🌙" : "☀️";
+  if(ic2) ic2.innerText = document.body.classList.contains("light-theme") ? "🌙" : "☀️";
+};
+</script>
+
+</div>
+</body>
+</html>

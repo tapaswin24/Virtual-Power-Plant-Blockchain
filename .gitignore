@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+venv/
+env/
+.venv/
+.env
+
+# Application Database/Logs
+blockchain.json
+*.log
+
+# Executables & Installer
+cloudflared.exe
+node_installer.msi
+
+# IDE
+.idea/
+.vscode/
+
+# Ignore this gemini brain artifact dir if placed here by accident
+.gemini/

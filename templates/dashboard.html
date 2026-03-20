@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>⚡ VPP Energy Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* Base Transitions */
+* { transition: background-color 0.4s ease, border-color 0.4s ease, color 0.4s ease, box-shadow 0.4s ease; }
+
+/* Theming CSS Variables */
+:root {
+  --bg-color: #0b1120;
+  --bg-image: radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08), transparent 25%), radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.08), transparent 25%);
+  --card-bg: rgba(30, 41, 59, 0.6);
+  --card-border: rgba(255, 255, 255, 0.05);
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --skeleton-bg: rgba(255, 255, 255, 0.05);
+}
+
+.light-theme {
+  --bg-color: #f1f5f9;
+  --bg-image: radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.05), transparent 25%), radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.05), transparent 25%);
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --card-border: rgba(0, 0, 0, 0.05);
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --skeleton-bg: rgba(0, 0, 0, 0.05);
+}
+
+body {
+    background-color: var(--bg-color);
+    background-image: var(--bg-image);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+/* Glassmorphism Classes */
+.glass-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border);
+    border-radius: 1rem;
+    box-shadow: var(--card-shadow);
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.glass-card:hover {
+    border-color: rgba(16, 185, 129, 0.3);
+    transform: translateY(-2px);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+/* Chart Canvas Fix */
+canvas { max-height: 250px; width: 100%; }
+
+/* Skeleton Loader Animation */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.skeleton-box {
+    display: inline-block;
+    height: 1.5rem;
+    width: 60%;
+    background-color: var(--skeleton-bg);
+    border-radius: 0.25rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.skeleton-box::after {
+    content: "";
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+.light-theme .skeleton-box::after {
+    background: linear-gradient(90deg, transparent, rgba(0,0,0,0.05), transparent);
+}
+
+/* Toast Animation */
+@keyframes slideUpFade {
+    0% { opacity: 0; transform: translateY(20px) translateX(-50%); }
+    10% { opacity: 1; transform: translateY(0) translateX(-50%); }
+    90% { opacity: 1; transform: translateY(0) translateX(-50%); }
+    100% { opacity: 0; transform: translateY(-20px) translateX(-50%); }
+}
+
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(16, 185, 129, 0.9);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+}
+.toast-active {
+    animation: slideUpFade 3.5s forwards;
+}
+
+/* Live Pulse */
+@keyframes pulse-dot {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+.live-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background-color: #10b981;
+    display: inline-block;
+    animation: pulse-dot 2s infinite;
+}
+.live-dot.waiting { background-color: #f59e0b; animation-name: pulse-dot-waiting; }
+@keyframes pulse-dot-waiting {
+    0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+/* Tooltip for Battery */
+.group:hover .group-hover\:opacity-100 {
+  opacity: 1;
+}
+.group:hover .group-hover\:visible {
+  visibility: visible;
+}
+</style>
+</head>
+
+<body class="flex h-screen bg-[var(--bg-color)] overflow-hidden" id="body" style="background-image: var(--bg-image); color: var(--text-primary);">
+
+{% include 'sidebar.html' %}
+
+<div class="flex-1 overflow-y-auto p-4 md:p-8 relative w-full">
+
+<!-- HEADER -->
+<div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+  <div>
+      <h1 class="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
+        ⚡ VPP Control Center
+      </h1>
+      <div class="flex items-center gap-2 mt-2 text-sm text-[var(--text-secondary)]">
+          <span id="liveStatusDot" class="live-dot waiting"></span>
+          <span id="liveStatusText">Waiting for sensor data...</span>
+      </div>
+  </div>
+
+  <div class="flex flex-wrap justify-center md:justify-end gap-3 items-center">
+    <div id="systemModeBadge" class="hidden px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-2 shadow-lg"></div>
+  </div>
+</div>
+
+<!-- MAIN KPIs -->
+<div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
+  <div class="glass-card flex flex-col items-center justify-center text-center">
+    <p class="text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-2 font-semibold">Grid Energy</p>
+    <p class="text-2xl font-bold text-emerald-400"><span id="acTotal" class="data-value"><span class="skeleton-box"></span></span></p>
+  </div>
+  <div class="glass-card flex flex-col items-center justify-center text-center">
+    <p class="text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-2 font-semibold">Renewable Energy</p>
+    <p class="text-2xl font-bold text-blue-400"><span id="dcTotal" class="data-value"><span class="skeleton-box"></span></span></p>
+  </div>
+  <div class="glass-card flex flex-col items-center justify-center text-center">
+    <p class="text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-2 font-semibold">Net Energy</p>
+    <p class="text-2xl font-bold text-purple-400"><span id="netTotal" class="data-value"><span class="skeleton-box"></span></span></p>
+  </div>
+  <div class="glass-card flex flex-col items-center justify-center text-center relative overflow-hidden">
+    <div class="absolute inset-0 bg-red-500/5 opacity-0 hover:opacity-100 transition-opacity"></div>
+    <p class="text-[10px] sm:text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-2 font-semibold leading-tight">AC Load Power Consumption</p>
+    <p class="text-2xl font-bold"><span id="grid" class="data-value"><span class="skeleton-box"></span></span></p>
+  </div>
+  <div class="glass-card flex flex-col items-center justify-center text-center relative overflow-hidden">
+    <div class="absolute inset-0 bg-yellow-500/5 opacity-0 hover:opacity-100 transition-opacity"></div>
+    <p class="text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-2 font-semibold">Solar Gen</p>
+    <p class="text-2xl font-bold text-yellow-500"><span id="solar" class="data-value"><span class="skeleton-box"></span></span></p>
+  </div>
+  <div class="glass-card flex flex-col items-center justify-center text-center relative group overflow-visible">
+    <p class="text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-2 font-semibold">Battery</p>
+    <p class="text-2xl font-bold text-cyan-400"><span id="battery" class="data-value"><span class="skeleton-box"></span></span></p>
+    
+    <!-- Hover Tooltip -->
+    <div class="absolute top-[-50px] left-1/2 transform -translate-x-1/2 bg-gray-900 border border-gray-700 text-white text-xs rounded-lg py-2 px-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 w-[200px] shadow-xl z-20 pointer-events-none">
+        <div class="flex justify-between items-center whitespace-nowrap">
+            <span class="text-emerald-400 font-bold" id="battHoverCharge">CHG: -- Wh</span>
+            <span class="text-red-400 font-bold ml-2" id="battHoverDischarge">DIS: -- Wh</span>
+        </div>
+        <div class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 border-b border-r border-gray-700 rotate-45"></div>
+    </div>
+  </div>
+  <div class="glass-card flex flex-col items-center justify-center text-center">
+    <p class="text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-2 font-semibold">Rectifier</p>
+    <p class="text-2xl font-bold text-purple-400"><span id="rectifier" class="data-value"><span class="skeleton-box"></span></span></p>
+  </div>
+  <div class="glass-card flex flex-col items-center justify-center text-center">
+    <p class="text-[10px] sm:text-xs uppercase tracking-wider text-[var(--text-secondary)] mb-2 font-semibold leading-tight">Est. Carbon</p>
+    <p class="text-2xl font-bold text-[var(--text-primary)]"><span id="carbon" class="data-value"><span class="skeleton-box"></span></span></p>
+  </div>
+</div>
+
+<!-- CHARTS -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+  <div class="glass-card flex flex-col h-full">
+    <h3 class="text-sm font-semibold text-[var(--text-secondary)] mb-4">Grid Energy Usage (Wh)</h3>
+    <div class="flex-grow"><canvas id="gridEnergyChart"></canvas></div>
+  </div>
+  <div class="glass-card flex flex-col h-full">
+    <h3 class="text-sm font-semibold text-[var(--text-secondary)] mb-4">Renewable Energy Usage (Wh)</h3>
+    <div class="flex-grow"><canvas id="renewableEnergyChart"></canvas></div>
+  </div>
+  <div class="glass-card flex flex-col h-full">
+    <h3 class="text-sm font-semibold text-[var(--text-secondary)] mb-4">Battery SoC (%)</h3>
+    <div class="flex-grow"><canvas id="socChart"></canvas></div>
+  </div>
+  <div class="glass-card flex flex-col h-full">
+    <h3 class="text-sm font-semibold text-[var(--text-secondary)] mb-4">Battery Activity</h3>
+    <div class="flex-grow"><canvas id="battActivityChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" class="toast flex items-center gap-2">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+  <span id="toastMsg">Data synced to Blockchain</span>
+</div>
+
+<script>
+let charts = {};
+let labels = [];
+let acEnergyData = [];
+let dcEnergyData = [];
+let netEnergyData = [];
+let socData = [];
+let battChargeData = [];
+let battDischargeData = [];
+
+// Determine dark mode colors dynamically
+function getChartColors() {
+    const isLight = document.body.classList.contains("light-theme");
+    return {
+        grid: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)',
+        text: isLight ? '#64748b' : '#94a3b8'
+    };
+}
+
+function reRenderCharts() {
+    if(!labels.length) return; // Wait for data
+    const lastIdx = labels.length - 1;
+    // Just force a redraw using existing data arrays
+    const { grid: gridColor, text: textColor } = getChartColors();
+    drawCharts(gridColor, textColor);
+}
+
+function drawCharts(gridColor, textColor) {
+  draw("gridEnergyChart", labels, [
+    {label:"Grid Energy (Wh)", data:acEnergyData, color:"#10b981", fillGradient: ["rgba(16, 185, 129, 0.4)", "rgba(16, 185, 129, 0)"]}
+  ], gridColor, textColor);
+
+  draw("renewableEnergyChart", labels, [
+    {label:"Renewable Energy (Wh)", data:dcEnergyData, color:"#eab308", fillGradient: ["rgba(234, 179, 8, 0.4)", "rgba(234, 179, 8, 0)"]}
+  ], gridColor, textColor);
+
+  draw("socChart", labels, [
+    {label:"SoC (%)", data:socData, color:"#06b6d4", fillGradient: ["rgba(6, 182, 212, 0.4)", "rgba(6, 182, 212, 0)"]}
+  ], gridColor, textColor);
+  
+  draw("battActivityChart", labels, [
+    {label:"Charged (Wh)", data:battChargeData, color:"#10b981", fillGradient: ["rgba(16, 185, 129, 0.4)", "rgba(16, 185, 129, 0)"]},
+    {label:"Discharged (Wh)", data:battDischargeData, color:"#f43f5e", fillGradient: ["rgba(244, 63, 94, 0.4)", "rgba(244, 63, 94, 0)"]}
+  ], gridColor, textColor);
+}
+
+function updateCharts(time, ac, dc, net, soc, charge, discharge, forceRerender = false) {
+  if (!forceRerender) {
+    labels.push(time);
+    acEnergyData.push(ac);
+    dcEnergyData.push(dc);
+    netEnergyData.push(net);
+    socData.push(soc);
+    battChargeData.push(charge);
+    battDischargeData.push(discharge);
+
+    if (labels.length > 20) {
+      labels.shift();
+      acEnergyData.shift();
+      dcEnergyData.shift();
+      netEnergyData.shift();
+      socData.shift();
+      battChargeData.shift();
+      battDischargeData.shift();
+    }
+  }
+
+  const { grid: gridColor, text: textColor } = getChartColors();
+  drawCharts(gridColor, textColor);
+}
+
+function draw(id, labels, datasets, gridColor, textColor) {
+  if (charts[id]) charts[id].destroy();
+
+  const ctx = document.getElementById(id).getContext('2d');
+  
+  charts[id] = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: datasets.map(d => {
+        let gradient = ctx.createLinearGradient(0, 0, 0, 250);
+        gradient.addColorStop(0, d.fillGradient[0]);
+        gradient.addColorStop(1, d.fillGradient[1]);
+
+        return {
+          label: d.label,
+          data: d.data,
+          borderColor: d.color,
+          backgroundColor: gradient,
+          fill: true,
+          tension: 0.4,
+          borderWidth: 2,
+          pointBackgroundColor: d.color,
+          pointBorderColor: "rgba(255,255,255,0.8)",
+          pointRadius: 2,
+          pointHoverRadius: 6
+        };
+      })
+    },
+    options: {
+      animation: { duration: 400 },
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: textColor, font: { family: "'Inter', sans-serif" } } },
+        tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            titleColor: '#fff',
+            bodyColor: '#cbd5e1',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 8
+        }
+      },
+      scales: {
+        x: { 
+            ticks: { color: textColor, autoSkip: true, maxTicksLimit: 6 },
+            grid: { color: gridColor, drawBorder: false }
+        },
+        y: {
+            beginAtZero: true,
+            ticks: { color: textColor },
+            grid: { color: gridColor, drawBorder: false }
+        }
+      }
+    }
+  });
+}
+
+function showToast(blockIndex) {
+    const toast = document.getElementById("toast");
+    const msg = document.getElementById("toastMsg");
+    if(blockIndex) {
+        msg.innerText = `Data synced to Blockchain (Block #${blockIndex})`;
+    }
+    
+    // reset animation
+    toast.classList.remove("toast-active");
+    void toast.offsetWidth; // trigger reflow
+    toast.classList.add("toast-active");
+}
+
+function updateUI(d) {
+  // Update live indicator
+  document.getElementById("liveStatusDot").classList.remove("waiting");
+  document.getElementById("liveStatusText").innerText = "Live stream active";
+  document.getElementById("liveStatusText").classList.add("text-emerald-400");
+  
+  // Set data
+  document.getElementById("acTotal").innerText = d.ac_energy + " Wh";
+  document.getElementById("dcTotal").innerText = d.dc_energy + " Wh";
+  document.getElementById("netTotal").innerText = d.net_energy + " Wh";
+  document.getElementById("grid").innerText = d.grid_ac_power + " W";
+  document.getElementById("solar").innerText = d.solar_power + " W";
+  document.getElementById("battery").innerText = d.batt_soc + " %"; // Use SoC for Battery KPI
+  
+  // Set Battery Hover Tooltip
+  document.getElementById("battHoverCharge").innerText = `CHG: ${d.batt_charge_energy} Wh`;
+  document.getElementById("battHoverDischarge").innerText = `DIS: ${d.batt_discharge_energy} Wh`;
+  
+  document.getElementById("rectifier").innerText = d.rectifier_power + " W";
+  document.getElementById("carbon").innerText = d.carbon + " kg";
+
+  // System Mode Badge Update
+  const badge = document.getElementById("systemModeBadge");
+  badge.classList.remove("hidden");
+  let badgeHtml = "";
+  if(d.mode === "GRID") {
+      badge.className = "px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-2 shadow-lg bg-red-500/10 border-red-500/30 text-red-400";
+      badgeHtml = `<span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Grid Tied`;
+  } else if (d.mode === "SOLAR/BATTERY") {
+      badge.className = "px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-2 shadow-lg bg-emerald-500/10 border-emerald-500/30 text-emerald-400";
+      badgeHtml = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Islanding (Solar/Batt)`;
+  } else {
+      badge.className = "px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-2 shadow-lg bg-cyan-500/10 border-cyan-500/30 text-cyan-400";
+      badgeHtml = `<span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span> Battery Only`;
+  }
+  badge.innerHTML = badgeHtml;
+
+  // Render charts
+  let timeStr = new Date();
+  if (d.timestamp) {
+      try {
+          const dateObj = new Date(d.timestamp);
+          if(!isNaN(dateObj.getTime())) timeStr = dateObj;
+      } catch(e){}
+  }
+  updateCharts(
+    timeStr.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}),
+    d.ac_energy,
+    d.dc_energy,
+    d.net_energy,
+    d.batt_soc,
+    d.batt_charge_energy,
+    d.batt_discharge_energy
+  );
+
+  if (d.new_block_minted) {
+      showToast(d.block_index);
+  }
+}
+
+// -------- FETCH LOOP --------
+function fetchData() {
+  fetch("/data")
+    .then(res => res.json())
+    .then(d => {
+      if (!d.timestamp) return; // no valid data returned yet
+      updateUI(d);
+    })
+    .catch(err => console.error("Data fetch error", err));
+}
+
+// Fetch right away, then every 15s
+setTimeout(fetchData, 1000); // 1 sec delay to show skeleton loaders briefly for aesthetics
+setInterval(fetchData, 15000);
+
+// -------- THEME TOGGLE --------
+window.toggleThemeGlobal = function(){
+  document.body.classList.toggle("light-theme");
+  
+  let ic1 = document.getElementById("themeIcon");
+  let ic2 = document.getElementById("themeIconMobile");
+  if(ic1) ic1.innerText = document.body.classList.contains("light-theme") ? "🌙" : "☀️";
+  if(ic2) ic2.innerText = document.body.classList.contains("light-theme") ? "🌙" : "☀️";
+  
+  reRenderCharts();
+};
+</script>
+
+</div>
+</body>
+</html>

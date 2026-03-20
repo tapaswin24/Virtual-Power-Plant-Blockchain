@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>⚡ Payment Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root {
+  --bg-color: #0b1120;
+  --bg-image: radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.1), transparent 50%);
+  --card-bg: rgba(30, 41, 59, 0.6);
+  --card-border: rgba(255, 255, 255, 0.05);
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --skeleton-bg: rgba(255, 255, 255, 0.05);
+}
+
+.light-theme {
+  --bg-color: #f1f5f9;
+  --bg-image: radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.05), transparent 50%);
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --card-border: rgba(0, 0, 0, 0.05);
+  --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --skeleton-bg: rgba(0, 0, 0, 0.05);
+}
+
+* { transition: background-color 0.4s ease, border-color 0.4s ease, color 0.4s ease; }
+
+body { font-family: 'Inter', sans-serif; }
+
+.glass-card {
+    background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--card-border);
+    border-radius: 1rem; padding: 1.5rem; overflow: hidden; box-shadow: var(--card-shadow);
+}
+.skeleton-box { display: inline-block; height: 1.5rem; width: 60%; background: var(--skeleton-bg); border-radius: 0.25rem; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--card-border); font-size: 0.875rem; }
+th { color: var(--text-secondary); text-transform: uppercase; font-weight: 700; font-size: 0.75rem; letter-spacing: 0.05em; }
+</style>
+</head>
+
+<body class="flex h-screen bg-[var(--bg-color)] overflow-hidden" id="body" style="background-image: var(--bg-image); color: var(--text-primary);">
+
+{% include 'sidebar.html' %}
+
+<div class="flex-1 overflow-y-auto p-4 md:p-8 relative w-full">
+
+  <!-- HEADER -->
+  <div class="flex flex-col md:flex-row justify-between items-center mb-10 pb-6 border-b border-[var(--card-border)] relative z-10">
+    <div>
+        <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400 flex items-center gap-3">
+          <svg class="h-8 w-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Payment Hub
+        </h1>
+        <p class="text-[var(--text-secondary)] mt-2 text-sm">
+          Dynamic bimonthly extrapolated billing tiers and live DC charging economies.
+        </p>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
+      
+      <!-- AC TARIFF -->
+      <div class="glass-card flex flex-col h-full shadow-lg shadow-purple-500/5">
+         <h3 class="text-lg font-bold mb-1 flex items-center gap-2 text-purple-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Estimated AC Bill (Bimonthly)
+         </h3>
+         <p class="text-xs text-[var(--text-secondary)] mb-6">Based on <span id="payment_units" class="font-bold text-[var(--text-primary)]">--</span> total predicted units (<span id="slab_category" class="font-mono text-purple-400 uppercase">--</span>).</p>
+         
+         <div class="overflow-x-auto mb-2 flex-1">
+             <table id="acTable">
+                 <thead>
+                     <tr><th>Tier</th><th>Rate (₹)</th><th>Units</th><th>Cost (₹)</th></tr>
+                 </thead>
+                 <tbody id="acTbody" class="font-mono">
+                     <!-- Populated strictly by JS -->
+                 </tbody>
+                 <tfoot>
+                     <tr>
+                         <th colspan="3" class="text-right pt-4 text-[var(--text-primary)] text-sm">TOTAL Bimonthly AC:</th>
+                         <th class="pt-4 text-purple-400 text-lg" id="acTotal">₹ --</th>
+                     </tr>
+                 </tfoot>
+             </table>
+         </div>
+      </div>
+
+      <!-- DC CHARGING RATES -->
+      <div class="glass-card shadow-lg shadow-emerald-500/5 h-fit flex flex-col justify-between">
+          <h3 class="text-lg font-bold mb-1 flex items-center gap-2 text-emerald-400">
+             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+             DC Battery Economy
+          </h3>
+          <p class="text-xs text-[var(--text-secondary)] mb-6">Valuation algorithm tracking immediate grid and solar interactions.</p>
+          
+          <div class="space-y-4">
+              <div class="p-5 rounded-xl border border-[var(--card-border)] bg-[var(--bg-color)]/30 hover:border-red-500/30 transition-all">
+                  <p class="text-[10px] uppercase font-bold text-[var(--text-secondary)] tracking-widest mb-1 flex items-center gap-2">
+                     Projected Bimonthly Charging Cost
+                     <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                  </p>
+                  <p class="text-3xl font-black font-mono text-red-500 mt-2">₹ <span id="payment_charge" class="skeleton-box inline-block h-6 w-24 align-middle"></span></p>
+                  <p class="text-[10px] text-[var(--text-secondary)] mt-2 italic">Estimates lifetime battery grid taxation explicitly extrapolated to a 60-day billing arc.</p>
+                  
+                  <div class="mt-4 pt-4 border-t border-[var(--card-border)]">
+                      <table class="w-full text-[10px] text-[var(--text-secondary)] m-0">
+                          <tr><td class="p-1">Avg Continuous Load</td><td class="text-right p-1 text-[var(--text-primary)] font-mono"><span id="charge_kw">--</span> kW</td></tr>
+                          <tr><td class="p-1">Mapped Daily Cost</td><td class="text-right p-1 text-[var(--text-primary)] font-mono">₹ <span id="charge_day">--</span></td></tr>
+                      </table>
+                  </div>
+              </div>
+              <div class="p-5 rounded-xl border border-[var(--card-border)] bg-[var(--bg-color)]/30 hover:border-emerald-500/30 transition-all">
+                  <p class="text-[10px] uppercase font-bold text-[var(--text-secondary)] tracking-widest mb-1 flex items-center gap-2">
+                     Projected Bimonthly Renewable Savings
+                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  </p>
+                  <p class="text-3xl font-black font-mono text-emerald-400 mt-2">₹ <span id="payment_saved" class="skeleton-box inline-block h-6 w-24 align-middle"></span></p>
+                  <p class="text-[10px] text-[var(--text-secondary)] mt-2 italic">Total monetary offset directly saved by solar and battery discharge yields actively bypassing the Grid.</p>
+                  
+                  <div class="mt-4 pt-4 border-t border-[var(--card-border)]">
+                      <table class="w-full text-[10px] text-[var(--text-secondary)] m-0">
+                          <tr><td class="p-1">Total Renewable Yield (Solar + Discharge)</td><td class="text-right p-1 text-[var(--text-primary)] font-mono"><span id="savings_kwh">--</span> kWh</td></tr>
+                          <tr><td class="p-1">Fixed Offset Value</td><td class="text-right p-1 text-[var(--text-primary)] font-mono">₹ 4.45 / kWh</td></tr>
+                      </table>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+  </div>
+
+      <!-- HYPOTHETICAL SUMMARY -->
+      <div class="max-w-5xl mx-auto glass-card shadow-lg shadow-emerald-500/5 col-span-1 lg:col-span-2 flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
+           <div class="flex-1 w-full">
+               <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-emerald-400">
+                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                   True Network Savings Architecture
+               </h3>
+               <table class="w-full text-sm text-[var(--text-secondary)] border-separate border-spacing-y-2 m-0 table-auto">
+                   <tr>
+                       <td class="p-1 flex flex-col">
+                           <span>1. Hypothetical Grid-Only Bill</span>
+                           <span class="text-[10px] text-[var(--text-secondary)] mt-0.5">(for <span id="hypo_total_units" class="font-mono text-[var(--text-primary)] font-bold">--</span> units without renewables)</span>
+                       </td>
+                       <td class="text-right font-mono text-[var(--text-primary)] p-1 align-top" id="hypo_base">₹ --</td>
+                   </tr>
+                   <tr>
+                       <td class="p-1">2. Actual AC Grid Load</td>
+                       <td class="text-right font-mono text-emerald-400 p-1" id="hypo_actual">- ₹ --</td>
+                   </tr>
+                    <tr>
+                       <td class="p-1">3. Gross Renewable Yield Offset</td>
+                       <td class="text-right font-mono text-[var(--text-primary)] p-1" id="hypo_gross">₹ --</td>
+                   </tr>
+                   <tr>
+                       <td class="p-1">4. Renewable Unit Incentive Bonus</td>
+                       <td class="text-right font-mono text-[var(--text-primary)] p-1" id="hypo_bonus">+ ₹ --</td>
+                   </tr>
+                   <tr>
+                       <td class="p-1">5. Battery Grid Charging Tax</td>
+                       <td class="text-right font-mono text-red-400 p-1" id="hypo_tax">- ₹ --</td>
+                   </tr>
+                   <tr class="border-t border-[var(--card-border)]">
+                       <td class="pt-3 font-bold text-emerald-400 text-base">Total VPP Net Profit</td>
+                       <td class="text-right pt-3 font-mono font-bold text-emerald-400 text-xl" id="hypo_total">₹ --</td>
+                   </tr>
+               </table>
+           </div>
+           
+           <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-6 w-full md:w-auto text-center shrink-0 shadow-inner">
+               <p class="text-xs uppercase tracking-wider text-emerald-400 font-bold mb-2">Net Monetary Yield</p>
+               <p class="text-3xl font-black text-emerald-300 font-mono" id="hypo_saved_box">₹ --</p>
+               <p class="text-[11px] text-emerald-500 mt-2 max-w-[220px] mx-auto font-medium">True profit actively avoiding grid slab spikes combined with incentive bonuses.</p>
+           </div>
+      </div>
+
+<script>
+window.toggleThemeGlobal = function(){
+  document.body.classList.toggle("light-theme");
+  let ic2 = document.getElementById("themeIconMobile");
+  if(ic2) ic2.innerText = document.body.classList.contains("light-theme") ? "🌙" : "☀️";
+};
+
+function renderTable(ac) {
+    let tbody = document.getElementById("acTbody");
+    tbody.innerHTML = "";
+    
+    Object.keys(ac).forEach(k => {
+        if (k.startsWith("tier")) {
+            let row = ac[k];
+            // Only show tiers that actually accumulated units for maximum visual cleanliness
+            if(row.units > 0) {
+               tbody.innerHTML += `<tr>
+                   <td class="text-[var(--text-secondary)] capitalize">${k}</td>
+                   <td>₹ ${row.rate.toFixed(2)}</td>
+                   <td class="text-[var(--text-primary)] font-bold">${row.units.toFixed(2)}</td>
+                   <td class="text-purple-400 font-bold">₹ ${row.cost.toFixed(2)}</td>
+               </tr>`;
+            }
+        }
+    });
+}
+
+function fetchData() {
+  fetch("/data")
+    .then(res => res.json())
+    .then(d => {
+      if (d.timestamp) {
+          // Always update DC values smoothly
+          document.getElementById("payment_charge").innerHTML = d.bimonthly_charge_cost.toFixed(2);
+          document.getElementById("payment_saved").innerHTML = d.bimonthly_savings.toFixed(2);
+          
+          document.getElementById("charge_kw").innerText = (d.bimonthly_charge_kwh / 1440.0).toFixed(3);
+          document.getElementById("charge_day").innerText = (d.bimonthly_charge_cost / 60.0).toFixed(2);
+          document.getElementById("savings_kwh").innerText = d.bimonthly_renewable_kwh.toFixed(2);
+          
+          // Map AC values cleanly
+          document.getElementById("payment_units").innerText = d.bimonthly_kwh;
+          document.getElementById("slab_category").innerText = d.ac_tariff.category;
+          document.getElementById("acTotal").innerText = "₹ " + d.ac_tariff.total.toFixed(2);
+          renderTable(d.ac_tariff);
+
+          // Hypothetical Match
+          let actual_ac = d.ac_tariff.total;
+          let hypo_base = d.hypo_ac_tariff_total || actual_ac;
+          let hypo_units = d.bimonthly_kwh + d.bimonthly_renewable_kwh;
+          let gross_offset = hypo_base - actual_ac;
+          let bonus = d.bimonthly_savings;
+          let charging_tax = d.bimonthly_charge_cost;
+          let net_savings = gross_offset + bonus - charging_tax;
+          
+          document.getElementById("hypo_total_units").innerText = hypo_units.toFixed(2);
+          document.getElementById("hypo_base").innerText = "₹ " + hypo_base.toFixed(2);
+          document.getElementById("hypo_actual").innerText = "- ₹ " + actual_ac.toFixed(2);
+          document.getElementById("hypo_gross").innerText = "₹ " + gross_offset.toFixed(2);
+          document.getElementById("hypo_bonus").innerText = "+ ₹ " + bonus.toFixed(2);
+          document.getElementById("hypo_tax").innerText = "- ₹ " + charging_tax.toFixed(2);
+          document.getElementById("hypo_total").innerText = "₹ " + net_savings.toFixed(2);
+          document.getElementById("hypo_saved_box").innerText = "₹ " + net_savings.toFixed(2);
+      }
+    }).catch(err => console.log("Fetch dropped", err));
+}
+
+setTimeout(fetchData, 500);
+setInterval(fetchData, 10000);
+</script>
+
+</div>
+</body>
+</html>
